@@ -115,7 +115,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(hello_xr d3d11 d3dcompiler dxgi ${OPENGL_gl_LIBRARY})
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_options(hello_xr PRIVATE -Wall)
-    target_link_libraries(hello_xr m pthread GL ${XLIB_LIBRARIES} ${XCB_LIBRARIES} ${WAYLAND_LIBRARIES})
+	target_link_libraries(hello_xr m pthread GL ${XLIB_LIBRARIES} ${XCB_LIBRARIES} ${WAYLAND_LIBRARIES} ${EGL_LIBRARIES})
     target_sources(hello_xr PRIVATE ${WAYLAND_PROTOCOL_SRC})
 endif()
 

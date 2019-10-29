@@ -126,6 +126,8 @@ struct OpenGLGraphicsPlugin : public IGraphicsPlugin {
         // TODO: Just need something other than NULL here for now (for validation).  Eventually need
         //       to correctly put in a valid pointer to an wl_display
         m_graphicsBinding.display = reinterpret_cast<wl_display*>(0xFFFFFFFF);
+#elif defined(XR_USE_PLATFORM_EGL)
+        PrepareEGL();
 #endif
 
         glEnable(GL_DEBUG_OUTPUT);
@@ -138,6 +140,15 @@ struct OpenGLGraphicsPlugin : public IGraphicsPlugin {
 
         InitializeResources();
     }
+
+#ifdef XR_USE_PLATFORM_EGL
+    void PrepareEGL() {
+        m_graphicsBinding.display = window.eglDisplay;
+        m_graphicsBinding.config = window.eglConfig;
+        m_graphicsBinding.context = window.eglContext;
+        m_graphicsBinding.getProcAddress = window.eglGetProcAddress;
+    }
+#endif
 
     void InitializeResources() {
         glGenFramebuffers(1, &m_swapchainFramebuffer);
@@ -353,6 +364,8 @@ struct OpenGLGraphicsPlugin : public IGraphicsPlugin {
     XrGraphicsBindingOpenGLXcbKHR m_graphicsBinding{XR_TYPE_GRAPHICS_BINDING_OPENGL_XCB_KHR};
 #elif defined(XR_USE_PLATFORM_WAYLAND)
     XrGraphicsBindingOpenGLWaylandKHR m_graphicsBinding{XR_TYPE_GRAPHICS_BINDING_OPENGL_WAYLAND_KHR};
+#elif defined(XR_USE_PLATFORM_EGL)
+    XrGraphicsBindingEGLMND m_graphicsBinding{XR_TYPE_GRAPHICS_BINDING_EGL_MND};
 #endif
 
     std::list<std::vector<XrSwapchainImageOpenGLKHR>> m_swapchainImageBuffers;

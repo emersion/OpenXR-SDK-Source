@@ -241,6 +241,17 @@ Platform headers / declarations
 #include <unistd.h>
 #include "xdg-shell-unstable-v6.h"
 
+#elif defined(OS_EGL_COMPATIBLE)
+#define XR_USE_PLATFORM_EGL 1
+
+/* TODO: The XCB, Xlib, Wayland, and possibly Android platforms should replaced
+ * with a single EGL platform. */
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglplatform.h>
+/* TODO: GLES via EGL */
+#include <GL/gl.h>
+
 #endif
 
 #include <GL/gl_format.h>
@@ -594,7 +605,7 @@ extern PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 extern PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 extern PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 extern PFNWGLDELAYBEFORESWAPNVPROC wglDelayBeforeSwapNV;
-#elif defined(OS_LINUX) && !defined(OS_LINUX_WAYLAND)
+#elif defined(OS_LINUX) && !defined(OS_LINUX_WAYLAND) && !defined(OS_EGL_COMPATIBLE)
 extern PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB;
 extern PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT;
 extern PFNGLXDELAYBEFORESWAPNVPROC glXDelayBeforeSwapNV;
@@ -851,6 +862,10 @@ typedef struct {
     EGLSurface tinySurface;
     EGLSurface mainSurface;
     EGLContext context;
+#elif defined(OS_EGL_COMPATIBLE)
+	EGLDisplay display;
+    EGLConfig config;
+    EGLContext context;
 #endif
 } ksGpuContext;
 
@@ -989,6 +1004,11 @@ typedef struct {
     Java_t java;
     ANativeWindow *nativeWindow;
     bool resumed;
+#elif defined(OS_EGL_COMPATIBLE)
+    EGLDisplay eglDisplay;
+    EGLContext eglContext;
+    EGLConfig eglConfig;
+	PFNEGLGETPROCADDRESSPROC eglGetProcAddress;
 #endif
 } ksGpuWindow;
 

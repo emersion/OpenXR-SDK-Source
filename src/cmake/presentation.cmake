@@ -1,4 +1,4 @@
-set(PRESENTATION_BACKENDS xlib xcb wayland)
+set(PRESENTATION_BACKENDS xlib xcb wayland egl)
 set(PRESENTATION_BACKEND xlib CACHE STRING
     "Presentation backend chosen at configure time")
 set_property(CACHE PRESENTATION_BACKEND PROPERTY STRINGS
@@ -21,6 +21,7 @@ if( PRESENTATION_BACKEND MATCHES "xlib" )
 
     add_definitions( -DSUPPORT_X )
     add_definitions( -DOS_LINUX_XLIB )
+    add_definitions( -DOS_LINUX_X11 )
     set( XLIB_LIBRARIES
             ${X11_LIBRARIES}
             ${X11_Xxf86vm_LIB}
@@ -32,6 +33,7 @@ elseif( PRESENTATION_BACKEND MATCHES "xcb" )
     # add_definitions( -DOS_LINUX_XCB )
     # XCB + Xlib GLX 1.3
     add_definitions( -DOS_LINUX_XCB_GLX )
+    add_definitions( -DOS_LINUX_X11 )
 
     pkg_search_module(X11 REQUIRED x11)
     pkg_search_module(XCB REQUIRED xcb)
@@ -58,6 +60,7 @@ elseif( PRESENTATION_BACKEND MATCHES "wayland" )
     pkg_search_module(EGL REQUIRED egl)
 
     add_definitions( -DOS_LINUX_WAYLAND )
+	# TODO: Add -DOS_EGL_COMPATIBLE
     set( WAYLAND_LIBRARIES
             ${EGL_LIBRARIES}
             ${WAYLAND_CLIENT_LIBRARIES}
@@ -98,4 +101,10 @@ elseif( PRESENTATION_BACKEND MATCHES "wayland" )
                 "\nYour wayland-protocols package does not "
                 "contain xdg-shell-unstable-v6.")
     endif()
+elseif( PRESENTATION_BACKEND MATCHES "egl" )
+    find_package(PkgConfig REQUIRED)
+
+	add_definitions( -DOS_EGL_COMPATIBLE )
+
+	pkg_search_module(EGL REQUIRED egl)
 endif()

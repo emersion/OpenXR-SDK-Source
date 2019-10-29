@@ -68,6 +68,11 @@ elseif( PRESENTATION_BACKEND MATCHES "wayland" )
 
     # TODO remove once conformance supports Wayland
     set(BUILD_CONFORMANCE_TESTS OFF)
+elseif( PRESENTATION_BACKEND MATCHES "egl" )
+	add_definitions( -DXR_USE_PLATFORM_EGL )
+
+	# TODO remove once conformance supports EGL
+    set(BUILD_CONFORMANCE_TESTS OFF)
 endif()
 
 # Enable graphics API available to the build.

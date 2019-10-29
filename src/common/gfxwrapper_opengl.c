@@ -275,7 +275,7 @@ OpenGL error checking.
     }
 #endif
 
-#if defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND)
+#if defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND) || defined(OS_EGL_COMPATIBLE)
 static const char *EglErrorString(const EGLint error) {
     switch (error) {
         case EGL_SUCCESS:
@@ -408,7 +408,7 @@ PROC GetExtension(const char *functionName) { return wglGetProcAddress(functionN
 void (*GetExtension(const char *functionName))() { return NULL; }
 #elif defined(OS_LINUX_XCB) || defined(OS_LINUX_XLIB) || defined(OS_LINUX_XCB_GLX)
 void (*GetExtension(const char *functionName))() { return glXGetProcAddress((const GLubyte *)functionName); }
-#elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND)
+#elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND) || defined(OS_EGL_COMPATIBLE)
 void (*GetExtension(const char *functionName))() { return eglGetProcAddress(functionName); }
 #endif
 
@@ -564,7 +564,7 @@ PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 PFNWGLDELAYBEFORESWAPNVPROC wglDelayBeforeSwapNV;
-#elif defined(OS_LINUX) && !defined(OS_LINUX_WAYLAND)
+#elif defined(OS_LINUX_X11)
 PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB;
 PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT;
 PFNGLXDELAYBEFORESWAPNVPROC glXDelayBeforeSwapNV;
@@ -576,7 +576,7 @@ void GlBootstrapExtensions() {
     wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)GetExtension("wglCreateContextAttribsARB");
     wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)GetExtension("wglSwapIntervalEXT");
     wglDelayBeforeSwapNV = (PFNWGLDELAYBEFORESWAPNVPROC)GetExtension("wglDelayBeforeSwapNV");
-#elif defined(OS_LINUX) && !defined(OS_LINUX_WAYLAND)
+#elif defined(OS_LINUX_X11)
     glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)GetExtension("glXCreateContextAttribsARB");
     glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)GetExtension("glXSwapIntervalEXT");
     glXDelayBeforeSwapNV = (PFNGLXDELAYBEFORESWAPNVPROC)GetExtension("glXDelayBeforeSwapNV");
@@ -1792,6 +1792,8 @@ void ksGpuContext_SetCurrent(ksGpuContext *context) {
     CGLSetCurrentContext(context->cglContext);
 #elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND)
     EGL(eglMakeCurrent(context->display, context->mainSurface, context->mainSurface, context->context));
+#elif defined(OS_EGL_COMPATIBLE)
+    EGL(eglMakeCurrent(context->display, EGL_NO_SURFACE, EGL_NO_SURFACE, context->context));
 #endif
 }
 
@@ -1820,7 +1822,7 @@ bool ksGpuContext_CheckCurrent(ksGpuContext *context) {
     return (CGLGetCurrentContext() == context->cglContext);
 #elif defined(OS_APPLE_IOS)
     return (false);  // TODO: pick current context off the UIView
-#elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND)
+#elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND) || defined(OS_EGL_COMPATIBLE)
     return (eglGetCurrentContext() == context->context);
 #endif
 }
@@ -3466,81 +3468,6 @@ ksGpuWindowEvent ksGpuWindow_ProcessEvents(ksGpuWindow *window) {
     return KS_GPU_WINDOW_EVENT_NONE;
 }
 
-/*
- * TODO:
- * This is a work around for ksKeyboardKey naming collision
- * with the definitions from <linux/input.h>.
- * The proper fix for this is to rename the key enums.
- */
-
-#undef KEY_A
-#undef KEY_B
-#undef KEY_C
-#undef KEY_D
-#undef KEY_E
-#undef KEY_F
-#undef KEY_G
-#undef KEY_H
-#undef KEY_I
-#undef KEY_J
-#undef KEY_K
-#undef KEY_L
-#undef KEY_M
-#undef KEY_N
-#undef KEY_O
-#undef KEY_P
-#undef KEY_Q
-#undef KEY_R
-#undef KEY_S
-#undef KEY_T
-#undef KEY_U
-#undef KEY_V
-#undef KEY_W
-#undef KEY_X
-#undef KEY_Y
-#undef KEY_Z
-#undef KEY_TAB
-
-typedef enum  // from <linux/input.h>
-{ KEY_A = 30,
-  KEY_B = 48,
-  KEY_C = 46,
-  KEY_D = 32,
-  KEY_E = 18,
-  KEY_F = 33,
-  KEY_G = 34,
-  KEY_H = 35,
-  KEY_I = 23,
-  KEY_J = 36,
-  KEY_K = 37,
-  KEY_L = 38,
-  KEY_M = 50,
-  KEY_N = 49,
-  KEY_O = 24,
-  KEY_P = 25,
-  KEY_Q = 16,
-  KEY_R = 19,
-  KEY_S = 31,
-  KEY_T = 20,
-  KEY_U = 22,
-  KEY_V = 47,
-  KEY_W = 17,
-  KEY_X = 45,
-  KEY_Y = 21,
-  KEY_Z = 44,
-  KEY_TAB = 15,
-  KEY_RETURN = KEY_ENTER,
-  KEY_ESCAPE = KEY_ESC,
-  KEY_SHIFT_LEFT = KEY_LEFTSHIFT,
-  KEY_CTRL_LEFT = KEY_LEFTCTRL,
-  KEY_ALT_LEFT = KEY_LEFTALT,
-  KEY_CURSOR_UP = KEY_UP,
-  KEY_CURSOR_DOWN = KEY_DOWN,
-  KEY_CURSOR_LEFT = KEY_LEFT,
-  KEY_CURSOR_RIGHT = KEY_RIGHT } ksKeyboardKey;
-
-typedef enum { MOUSE_LEFT = BTN_LEFT, MOUSE_MIDDLE = BTN_MIDDLE, MOUSE_RIGHT = BTN_RIGHT } ksMouseButton;
-
 #elif defined(OS_APPLE_MACOS)
 
 typedef enum {
@@ -4301,6 +4228,194 @@ ksGpuWindowEvent ksGpuWindow_ProcessEvents(ksGpuWindow *window) {
     return KS_GPU_WINDOW_EVENT_NONE;
 }
 
+#elif defined(OS_EGL_COMPATIBLE)
+
+static bool GetEGLConfig(EGLDisplay disp, EGLint *attribs, EGLConfig *out) {
+    EGLint count = 0, matched = 0, ret;
+
+    ret = eglGetConfigs(disp, NULL, 0, &count);
+    if (ret == EGL_FALSE || count == 0) {
+        return false;
+    }
+
+    EGLConfig configs[count];
+    ret = eglChooseConfig(disp, attribs, configs, count, &matched);
+    if (ret == EGL_FALSE || matched <= 0) {
+        return false;
+    }
+
+    *out = configs[0];
+    return true;
+}
+
+bool ksGpuWindow_Create(ksGpuWindow *window, ksDriverInstance *instance, const ksGpuQueueInfo *queueInfo, const int queueIndex,
+                        const ksGpuSurfaceColorFormat colorFormat, const ksGpuSurfaceDepthFormat depthFormat,
+                        const ksGpuSampleCount sampleCount, const int width, const int height, const bool fullscreen) {
+    memset(window, 0, sizeof(ksGpuWindow));
+
+    window->colorFormat = colorFormat;
+    window->depthFormat = depthFormat;
+    window->sampleCount = sampleCount;
+    window->windowWidth = width;
+    window->windowHeight = height;
+    window->windowSwapInterval = 1;
+    window->windowRefreshRate = 60.0f;
+    window->windowFullscreen = true;
+    window->windowActive = false;
+    window->windowExit = false;
+    window->lastSwapTime = GetTimeNanoseconds();
+
+    EGLDisplay display;
+    EGLConfig config;
+    EGLContext context;
+
+    PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
+        (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
+
+    if (!eglGetPlatformDisplayEXT) {
+        return NULL;
+    }
+
+    /* TODO: Let user pick GLES if they so desire */
+    if (eglBindAPI(EGL_OPENGL_API) == EGL_FALSE) {
+        return NULL;
+    }
+
+    /*
+     * The XR runtime will be allocating buffers for us however it sees fit,
+     * so EGL_PLATFORM_SURFACELESS_MESA is the lowest common denomonator.
+     */
+    display = eglGetPlatformDisplayEXT(
+            EGL_PLATFORM_SURFACELESS_MESA, NULL, NULL);
+    if (display == EGL_NO_DISPLAY) {
+        return NULL;
+    }
+
+    EGLint major, minor;
+    if (eglInitialize(display, &major, &minor) == EGL_FALSE) {
+        return NULL;
+    }
+
+    static EGLint config_attribs[] = {
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_RED_SIZE, 1,
+        EGL_GREEN_SIZE, 1,
+        EGL_BLUE_SIZE, 1,
+        EGL_ALPHA_SIZE, 1,
+        EGL_NONE,
+    };
+
+    if (!GetEGLConfig(display, config_attribs, &config)) {
+        return NULL;
+    }
+
+    EGLint attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE,
+    };
+    context = eglCreateContext(display, config, EGL_NO_CONTEXT, attribs);
+    if (context == EGL_NO_CONTEXT) {
+        return NULL;
+    }
+
+    window->eglDisplay = display;
+    window->eglConfig = config;
+    window->eglContext = context;
+    window->eglGetProcAddress = eglGetProcAddress;
+
+    window->context.display = display;
+    window->context.config = config;
+    window->context.context = context;
+
+    ksGpuDevice_Create(&window->device, instance, queueInfo);
+    ksGpuContext_SetCurrent(&window->context);
+
+    GlInitExtensions();
+
+    return true;
+}
+
+#endif
+
+#if defined(OS_WINDOW_WAYLAND) || defined(OS_EGL_COMPATIBLE)
+
+/*
+ * TODO: linux_input ksKeyboardKey
+ * This is a work around for ksKeyboardKey naming collision
+ * with the definitions from <linux/input.h>.
+ * The proper fix for this is to rename the key enums.
+ */
+
+#include <linux/input.h>
+
+#undef KEY_A
+#undef KEY_B
+#undef KEY_C
+#undef KEY_D
+#undef KEY_E
+#undef KEY_F
+#undef KEY_G
+#undef KEY_H
+#undef KEY_I
+#undef KEY_J
+#undef KEY_K
+#undef KEY_L
+#undef KEY_M
+#undef KEY_N
+#undef KEY_O
+#undef KEY_P
+#undef KEY_Q
+#undef KEY_R
+#undef KEY_S
+#undef KEY_T
+#undef KEY_U
+#undef KEY_V
+#undef KEY_W
+#undef KEY_X
+#undef KEY_Y
+#undef KEY_Z
+#undef KEY_TAB
+
+typedef enum  // from <linux/input.h>
+{ KEY_A = 30,
+  KEY_B = 48,
+  KEY_C = 46,
+  KEY_D = 32,
+  KEY_E = 18,
+  KEY_F = 33,
+  KEY_G = 34,
+  KEY_H = 35,
+  KEY_I = 23,
+  KEY_J = 36,
+  KEY_K = 37,
+  KEY_L = 38,
+  KEY_M = 50,
+  KEY_N = 49,
+  KEY_O = 24,
+  KEY_P = 25,
+  KEY_Q = 16,
+  KEY_R = 19,
+  KEY_S = 31,
+  KEY_T = 20,
+  KEY_U = 22,
+  KEY_V = 47,
+  KEY_W = 17,
+  KEY_X = 45,
+  KEY_Y = 21,
+  KEY_Z = 44,
+  KEY_TAB = 15,
+  KEY_RETURN = KEY_ENTER,
+  KEY_ESCAPE = KEY_ESC,
+  KEY_SHIFT_LEFT = KEY_LEFTSHIFT,
+  KEY_CTRL_LEFT = KEY_LEFTCTRL,
+  KEY_ALT_LEFT = KEY_LEFTALT,
+  KEY_CURSOR_UP = KEY_UP,
+  KEY_CURSOR_DOWN = KEY_DOWN,
+  KEY_CURSOR_LEFT = KEY_LEFT,
+  KEY_CURSOR_RIGHT = KEY_RIGHT } ksKeyboardKey;
+
+typedef enum { MOUSE_LEFT = BTN_LEFT, MOUSE_MIDDLE = BTN_MIDDLE, MOUSE_RIGHT = BTN_RIGHT } ksMouseButton;
+
 #endif
 
 void ksGpuWindow_SwapInterval(ksGpuWindow *window, int swapInterval) {
@@ -4335,6 +4450,8 @@ void ksGpuWindow_SwapBuffers(ksGpuWindow *window) {
     CGLFlushDrawable(window->context.cglContext);
 #elif defined(OS_ANDROID) || defined(OS_LINUX_WAYLAND)
     EGL(eglSwapBuffers(window->context.display, window->context.mainSurface));
+#elif defined(OS_EGL_COMPATIBLE)
+    /* no-op */
 #endif
 
     ksNanoseconds newTimeNanoseconds = GetTimeNanoseconds();

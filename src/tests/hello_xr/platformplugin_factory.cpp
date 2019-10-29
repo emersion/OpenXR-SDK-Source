@@ -21,6 +21,8 @@ std::shared_ptr<IPlatformPlugin> CreatePlatformPlugin_Android(const std::shared_
     throw std::runtime_error("Android Platform Adapter Not Implemented");
 }
 
+std::shared_ptr<IPlatformPlugin> CreatePlatformPlugin_EGL(const std::shared_ptr<Options>& /*unused*/);
+
 std::shared_ptr<IPlatformPlugin> CreatePlatformPlugin(const std::shared_ptr<Options>& options) {
 #if defined(XR_USE_PLATFORM_WIN32)
     return CreatePlatformPlugin_Win32(options);
@@ -32,6 +34,8 @@ std::shared_ptr<IPlatformPlugin> CreatePlatformPlugin(const std::shared_ptr<Opti
     return CreatePlatformPlugin_Xcb(options);
 #elif defined(XR_USE_PLATFORM_WAYLAND)
     return CreatePlatformPlugin_Wayland(options);
+#elif defined(XR_USE_PLATFORM_EGL)
+	return CreatePlatformPlugin_EGL(options);
 #else
 #error Unsupported platform or no XR platform defined!
 #endif
